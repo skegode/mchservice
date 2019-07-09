@@ -1,0 +1,182 @@
+﻿using System;
+using System.Data;
+using System.Data.SqlClient;
+
+namespace mchservice
+{
+   class Program
+    {
+     
+        static void Main(string[] args)
+        {
+
+
+            Rollover();
+            Console.ReadKey();
+
+        }
+        static void Rollover()
+        {
+            string connectionString = "server=197.232.70.193,30008;" + "initial catalog=MICROCAP_HOLD;" + "user id=Demabio;" + "password=123456";
+             string smsdbstring = "server=197.232.70.193,30008;" + "initial catalog=FIN_SMS_EMAIL;" + "user id=Demabio;" + "password=123456";
+             SqlConnection con = new SqlConnection(); 
+
+            try
+            {
+                double currentbalance = 0, rolloverchage = 0;
+                int loanid = 0, pendingloans = 0, i;
+                string smsbody = "", phoneNumber = "";
+
+                //getting number of txn to be rolled over
+                var countquery = "select count(loanid) as count from VW_ROLLEDOVER where RoleoverDate<=@currentdate and ROLLEDOVER=0 ";
+                SqlCommand cmdcount = new SqlCommand(countquery, con);
+                cmdcount.Parameters.AddWithValue("@currentdate", DateTime.Now);
+                con.ConnectionString = connectionString;
+                con.Open();
+                using (SqlDataReader read = cmdcount.ExecuteReader())
+                {
+                    while (read.Read())
+                    {
+
+                        pendingloans = Convert.ToInt32((read["count"]));
+                    }
+
+                    con.Close();
+
+
+                }
+                con.Close();
+
+                //updating all loans past rolledOver date.
+
+                for (i = 0; i < pendingloans; i++)
+                {
+
+                    var fetchStrings = "SELECT * FROM VW_ROLLEDOVER WHERE RoleoverDate<=@currentdate and ROLLEDOVER=0";
+                    SqlCommand cmd = new SqlCommand(fetchStrings, con);
+                    cmd.Parameters.AddWithValue("@currentdate", DateTime.Now);
+                    try
+                    {
+                        con.ConnectionString = connectionString;
+                        con.Open();
+
+                        using (SqlDataReader read = cmd.ExecuteReader())
+                        {
+
+                            while (read.Read())
+                            {
+                                currentbalance = Convert.ToDouble((read["loanbalance"]));
+                                rolloverchage = Convert.ToDouble((read["RollOverFee"]));
+                                loanid = Convert.ToInt32((read["loanid"]));
+                                phoneNumber = (read["borrowerphone"]).ToString();
+                            }
+                        }
+                        con.Close();
+
+                        double penalty = (rolloverchage / 100) * currentbalance;
+                        double newbalance = penalty + currentbalance;
+
+
+
+
+                        SqlCommand cmdupdate = new SqlCommand("RolloverCheck", con);
+
+                        using (SqlDataAdapter sda = new SqlDataAdapter())
+                        {
+                            cmdupdate.CommandType = CommandType.StoredProcedure;
+                            cmdupdate.Parameters.AddWithValue("@newloanbalance", newbalance);
+                            cmdupdate.Parameters.AddWithValue("@rolloverstatus", 1);
+                            cmdupdate.Parameters.AddWithValue("@loanid", loanid);
+                            cmdupdate.Parameters.AddWithValue("@Penalty", penalty);
+                            con.ConnectionString = connectionString;
+                            con.Open();
+                            int successStus = cmdupdate.ExecuteNonQuery();
+                            con.Close();
+
+                            switch (successStus)
+                            {
+                                case 0:
+                                    Console.WriteLine("There was an error updating the loan kindly view logs");
+                                    Console.WriteLine();
+                                    break;
+                                case -1:
+
+
+                                    //sending sms
+                                    var smsquerystring = "SELECT * FROM SystemNotifications WHERE NotificationID=@NotificationID";
+                                    SqlCommand cmdsmselect = new SqlCommand(smsquerystring, con);
+                                    cmdsmselect.Parameters.AddWithValue("@NotificationID", 13);
+                                    try
+                                    {
+                                        con.ConnectionString = connectionString;
+                                        con.Open();
+
+                                        using (SqlDataReader read2 = cmdsmselect.ExecuteReader())
+                                        {
+
+                                            while (read2.Read())
+                                            {
+
+                                                smsbody = (read2["NotificationBody"]).ToString();
+                                            }
+                                        }
+                                        con.Close();
+
+                                        //dumping sms to sms db
+                                        string newsmsbody = smsbody.Replace("<amount>", Convert.ToString(penalty)).Replace("<new loan balance>", Convert.ToString(newbalance));
+
+                                        SqlCommand cmddump = new SqlCommand("InsertRolloversms", con);
+
+                                        using (SqlDataAdapter sdadump = new SqlDataAdapter())
+                                        {
+                                            cmddump.CommandType = CommandType.StoredProcedure;
+                                            cmddump.Parameters.AddWithValue("@phonenumber", phoneNumber);
+                                            cmddump.Parameters.AddWithValue("@smsbody", newsmsbody);
+                                            cmddump.Parameters.AddWithValue("@datex", DateTime.Now);
+                                            cmddump.Parameters.AddWithValue("@sentStatus", 0);
+                                            cmddump.Parameters.AddWithValue("@loanid", loanid);
+                                            cmddump.Parameters.AddWithValue("@client", "CEMES");
+                                            con.ConnectionString = smsdbstring;
+                                            con.Open();
+                                            cmddump.ExecuteNonQuery();
+                                            con.Close();
+
+
+                                            Console.WriteLine("Loan Id:" + loanid + "has been updated successful");
+                                            Console.WriteLine();
+
+
+                                        }
+                                    }
+
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine(ex);
+                                    }
+                                    break;
+                            }
+
+                        }
+                    }
+
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
+        public void activeCustomer()
+        {
+            string query = "EXEC [dbo].[ActivateCustomer]";  
+
+    
+        }
+       
+    }
+}
