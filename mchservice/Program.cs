@@ -4,9 +4,14 @@ using System.Data.SqlClient;
 
 namespace mchservice
 {
-   class Program
+
+
+    public class Program
     {
+      public const  string connectionString = "server=197.232.70.193,30008;" + "initial catalog=MICROCAP_HOLD;" + "user id=Demabio;" + "password=123456";
+      public const string smsdbstring = "server=197.232.70.193,30008;" + "initial catalog=FIN_SMS_EMAIL;" + "user id=Demabio;" + "password=123456";
      
+
         static void Main(string[] args)
         {
 
@@ -17,10 +22,7 @@ namespace mchservice
         }
         static void Rollover()
         {
-            string connectionString = "server=197.232.70.193,30008;" + "initial catalog=MICROCAP_HOLD;" + "user id=Demabio;" + "password=123456";
-             string smsdbstring = "server=197.232.70.193,30008;" + "initial catalog=FIN_SMS_EMAIL;" + "user id=Demabio;" + "password=123456";
-             SqlConnection con = new SqlConnection(); 
-
+            SqlConnection con = new SqlConnection();
             try
             {
                 double currentbalance = 0, rolloverchage = 0;
@@ -99,7 +101,9 @@ namespace mchservice
                                     Console.WriteLine("There was an error updating the loan kindly view logs");
                                     Console.WriteLine();
                                     break;
-                                case -1:
+                                case 1:
+
+
 
 
                                     //sending sms
@@ -173,7 +177,26 @@ namespace mchservice
         }
         public void activeCustomer()
         {
-            string query = "EXEC [dbo].[ActivateCustomer]";  
+
+            int result;
+            SqlConnection con = new SqlConnection();
+            using (SqlCommand cmd = new SqlCommand("ActivateCustomer"))
+            {
+                using (SqlDataAdapter sda = new SqlDataAdapter())
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                   
+
+
+                    cmd.Connection = con;
+                    con.ConnectionString = connectionString;
+                    con.Open();
+                    result = Convert.ToInt32(cmd.ExecuteScalar());
+                    con.Close();
+                }
+            }
+
+            
 
     
         }
