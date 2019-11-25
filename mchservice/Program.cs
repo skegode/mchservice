@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Data.SqlClient;
+using System.Threading.Tasks;
 
 namespace mchservice
 {
@@ -12,7 +13,7 @@ namespace mchservice
         public const string smsdbstring = "server=197.232.70.193,50002;" + "initial catalog=FIN_SMS_EMAIL;" + "user id=sa;" + "password=123456";
 
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
 
             int rolloverflag;
@@ -21,18 +22,18 @@ namespace mchservice
             writeoff writeoff = new writeoff();
             Rollover rollover = new Rollover();
             Sabuni sabuni = new Sabuni();
+        
+
+            string xxx=await sabuni.CreditInfoRequestAsync();
 
             rolloverflag = rollover.rolloverloan();
 
             if (rolloverflag == -1)
             {
-                writeoff.writeoffloans();
-                smsreminder.smsr();
+               // writeoff.writeoffloans();
+               // smsreminder.smsr();
             }
-
-
-            Console.WriteLine("Services has processed all loans succesfully");
-            Console.ReadKey();
+           
 
         }
         static void Rollover()

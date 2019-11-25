@@ -200,7 +200,7 @@ namespace mchservice
         CreditAdvisoryPlan infoAdvise = new CreditAdvisoryPlan();
         [Route("SabuniApi")]
         [HttpPost]
-        public async Task<string> CreditInfoRequestAsync(string receivedjson)
+        public async Task<string> CreditInfoRequestAsync()
         {
             string NationalId = "";
             string ExistingCustomer = "True";
@@ -259,18 +259,18 @@ namespace mchservice
                 }
                 con.Close();
 
-                BeginStrategyClass request = JsonConvert.DeserializeObject<BeginStrategyClass>(receivedjson);
+                //BeginStrategyClass request = JsonConvert.DeserializeObject<BeginStrategyClass>(receivedjson);
                 CreditInfoResponse response = new CreditInfoResponse();
-                string infodecision = "";
+                //string infodecision = "";
 
-                if (request == null)
-                {
-                    response.Description = "Required Field(s) are Missing";
-                }
-                else
-                {
+                //if (request == null)
+                //{
+                //    response.Description = "Required Field(s) are Missing";
+                //}
+                //else
+                //{
                     string childName = "";
-                    soapEnvelope = await BeginStrategy.getInstance().CreateSoapEnvelope(NationalId, ExistingCustomer, MobilePhone, AgeOfBusiness, request.SalesTurnover, request.NDaysInRollover, request.NDeclinedApplicationsL3m, request.RepaymentScore, request.DateOfLastLimitChange);
+                    soapEnvelope = await BeginStrategy.getInstance().CreateSoapEnvelope(NationalId, ExistingCustomer, MobilePhone, AgeOfBusiness, SalesTurnover,NDaysInRollover, NDeclinedApplicationsL3m, RepaymentScore, DateOfLastLimitChange);
                     xmlDocument = new XmlDocument();
                     xmlDocument.LoadXml(soapEnvelope);
                     XmlNodeList nodes = xmlDocument.GetElementsByTagName("BeginStrategyResult");
@@ -386,7 +386,7 @@ namespace mchservice
 
 
                 }
-            }
+            
             var jsonSerialiser = new JavaScriptSerializer();
             var json = new JavaScriptSerializer().Serialize(infoAdvise);
             string example = json.ToString();
@@ -408,40 +408,40 @@ namespace mchservice
         //}
 
 
-        [Route("creditonfocheck")]
-        [HttpGet]
-        public async Task<string> creditonfocheckAsync(string NationalId, string ExistingCustomer, string MobilePhone,
-           string AgeOfBusiness, string SalesTurnover, string NDeclinedApplicationsL3m, string RepaymentScore
-            , string DateOfLastLimitChange, string Consent, string NDaysInRollover)
-        {
+        //[Route("creditonfocheck")]
+        //[HttpGet]
+        //public async Task<string> creditonfocheckAsync(string NationalId, string ExistingCustomer, string MobilePhone,
+        //   string AgeOfBusiness, string SalesTurnover, string NDeclinedApplicationsL3m, string RepaymentScore
+        //    , string DateOfLastLimitChange, string Consent, string NDaysInRollover)
+        //{
 
-            CreditInfoRequest cr = new CreditInfoRequest();
-            cr.NationalId = NationalId;
-            cr.ExistingCustomer = ExistingCustomer;
-            cr.MobilePhone = MobilePhone;
-            cr.AgeOfBusiness = AgeOfBusiness;
-            cr.SalesTurnover = SalesTurnover;
-            cr.NDeclinedApplicationsL3m = NDeclinedApplicationsL3m;
-            cr.RepaymentScore = RepaymentScore;
-            cr.DateOfLastLimitChange = DateOfLastLimitChange;
-            cr.Consent = Consent;
-            cr.NDaysInRollover = NDaysInRollover;
+        //    CreditInfoRequest cr = new CreditInfoRequest();
+        //    cr.NationalId = NationalId;
+        //    cr.ExistingCustomer = ExistingCustomer;
+        //    cr.MobilePhone = MobilePhone;
+        //    cr.AgeOfBusiness = AgeOfBusiness;
+        //    cr.SalesTurnover = SalesTurnover;
+        //    cr.NDeclinedApplicationsL3m = NDeclinedApplicationsL3m;
+        //    cr.RepaymentScore = RepaymentScore;
+        //    cr.DateOfLastLimitChange = DateOfLastLimitChange;
+        //    cr.Consent = Consent;
+        //    cr.NDaysInRollover = NDaysInRollover;
 
-            string serializedBodyRequest = JsonConvert.SerializeObject(cr);
+        //    string serializedBodyRequest = JsonConvert.SerializeObject(cr);
 
-            string results = await CreditInfoRequestAsync(serializedBodyRequest);
+        //    string results = await CreditInfoRequestAsync(serializedBodyRequest);
 
-            return results;
-
-
+        //    return results;
 
 
 
 
 
 
-        }
-        #endregion
+
+
+        //}
+        //#endregion
 
 
 
@@ -497,7 +497,7 @@ namespace mchservice
 
 
         //}
-
+        #endregion
         private static object XmlDeserializeFromString(Type type, string objectData)
         {
             //objectData = RemoveInvalidXmlCharacters(objectData);//customizeoption if you know the xml you receive wont have any invalid characters you can remove this function
