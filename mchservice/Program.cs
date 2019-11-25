@@ -20,6 +20,7 @@ namespace mchservice
             smsreminder smsreminder = new smsreminder();
             writeoff writeoff = new writeoff();
             Rollover rollover = new Rollover();
+            Sabuni sabuni = new Sabuni();
 
             rolloverflag = rollover.rolloverloan();
 
