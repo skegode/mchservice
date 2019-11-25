@@ -84,7 +84,7 @@ namespace mchservice
         //            }
         //            con.Close();
 
-                  
+
         //        }
 
         //        catch (Exception ex)
@@ -236,166 +236,156 @@ namespace mchservice
             int i;
             for (i = 0; i < pendingchecks; i++)
             {
-              
+
                 var fetchStrings = "SELECT * FROM Customers WHERE Creditinfochecked=0";
                 SqlCommand cmd = new SqlCommand(fetchStrings, con);
-                cmd.Parameters.AddWithValue("@currentdate", DateTime.Now);
-                try
-                {
-                    con.ConnectionString = connectionString;
-                    con.Open();
+                //cmd.Parameters.AddWithValue("@currentdate", DateTime.Now);
 
-                    using (SqlDataReader read = cmd.ExecuteReader())
+                con.ConnectionString = connectionString;
+                con.Open();
+
+                using (SqlDataReader read = cmd.ExecuteReader())
+                {
+
+                    while (read.Read())
                     {
-
-                        while (read.Read())
-                        {
-                            NationalId = Convert.ToString((read["ID_NO_OR_PASSPORT"]));
-                            MobilePhone = Convert.ToString((read["MOBILE_NUMBER"]));
-                            AgeOfBusiness = "12";
-                          
+                        NationalId = Convert.ToString((read["ID_NO_OR_PASSPORT"]));
+                        MobilePhone = Convert.ToString((read["MOBILE_NUMBER"]));
+                        AgeOfBusiness = "12";
 
 
-                        }
-                    }
-                    con.Close();
-
-
-                }
-
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-
-            }
-
-            BeginStrategyClass request = JsonConvert.DeserializeObject<BeginStrategyClass>(receivedjson);
-            CreditInfoResponse response = new CreditInfoResponse();
-            string infodecision = "";
-
-            if (request == null)
-            {
-                response.Description = "Required Field(s) are Missing";
-            }
-            else
-            {
-                string childName = "";
-                soapEnvelope = await BeginStrategy.getInstance().CreateSoapEnvelope(NationalId, ExistingCustomer, MobilePhone, AgeOfBusiness, request.SalesTurnover, request.NDaysInRollover, request.NDeclinedApplicationsL3m, request.RepaymentScore, request.DateOfLastLimitChange);
-                xmlDocument = new XmlDocument();
-                xmlDocument.LoadXml(soapEnvelope);
-                XmlNodeList nodes = xmlDocument.GetElementsByTagName("BeginStrategyResult");
-                int Count = 0;
-                string token = xmlDocument.GetElementsByTagName("Token")[0].InnerText;
-
-
-                if (nodes != null)
-                {
-                    foreach (XmlNode node in nodes)
-                    {
-
-                        response.Token = node["Token"].InnerText;
-                        response.Description = "Success";
-                        response.FaultCode = "0";
-
-                        soapEnvelope = await BeginStrategy.getInstance().CreateSoapEnvelopeEndStrat(response.Token);
-
-                        xmlDoc = new XmlDocument();
-                        xmlDoc.LoadXml(soapEnvelope);
-                        XmlNodeList nodesEND = xmlDoc.GetElementsByTagName("Response");
-                        XmlNodeList fault = xmlDoc.GetElementsByTagName("detail");
-                        while (fault.Count > 0 && Count <= 20)
-                        {
-                            response.FaultCode = "1";
-                            soapEnvelope = await BeginStrategy.getInstance().CreateSoapEnvelopeEndStrat(response.Token);
-                            // To convert an XML node contained in string xml into a JSON string   
-                            XmlDocument doc = new XmlDocument();
-                            doc.LoadXml(soapEnvelope);
-                            jsonText = JsonConvert.SerializeXmlNode(doc);
-
-                            // To convert JSON text contained in string json into an XML node
-                            XmlDocument dc = JsonConvert.DeserializeXmlNode(jsonText);
-
-
-                            xmlDc = new XmlDocument();
-                            xmlDc.LoadXml(soapEnvelope);
-                            nodesEND = xmlDc.GetElementsByTagName("Response");
-                            fault = xmlDc.GetElementsByTagName("detail");
-                            Count++;
-                        }
-                        if (nodesEND.Count != 0)
-                        {
-                            foreach (XmlNode nodeEND in nodesEND)
-                            {
-                                //Debug.WriteLine(nodeEND.ChildNodes[0].Name.ToString());
-                                //Debug.WriteLine(" Status " + nodeEND["status"].InnerText);
-                                response.Token = "";
-                                response.Description = "";
-                                response.FaultCode = "0";
-
-                                nodesEND = xmlDc.GetElementsByTagName("response");
-                                XNamespace.Get("http://creditinfo.com/schemas/2012/09/MultiConnector/Connectors/INT/IdmStrategy/Response");
-                                foreach (XmlNode noderesponse in nodesEND[1])
-                                {
-                                    if (noderesponse.Name.Equals("Result"))
-                                    {
-                                        infoAdvise.RecommendedDecision = noderesponse["RecommendedDecision"].InnerText;
-                                        infoAdvise.CreditLimit = noderesponse["CreditLimit"].InnerText;
-                                    }
-                                    if (noderesponse.Name.Equals("GeneralInformation"))
-                                    {
-                                        infoAdvise.SubjectIDNumber = noderesponse["SubjectIDNumber"].InnerText;
-                                    }
-                                    if (noderesponse.Name.Equals("ScoringAnalysis"))
-                                    {
-                                        infoAdvise.CIPScore = noderesponse["CIPScore"].InnerText;
-                                        infoAdvise.CIPRiskGrade = noderesponse["CIPRiskGrade"].InnerText;
-                                        infoAdvise.MobileScore = noderesponse["MobileScore"].InnerText;
-                                        infoAdvise.MobileScoreRiskGrade = noderesponse["MobileScoreRiskGrade"].InnerText;
-                                    }
-
-                                    SqlCommand Creditinfoupdate = new SqlCommand("Updatecreditstatus", con);
-                                    using (SqlDataAdapter sda = new SqlDataAdapter())
-                                    {
-                                        Creditinfoupdate.CommandType = CommandType.StoredProcedure;
-                                        Creditinfoupdate.Parameters.AddWithValue("@SoapEnvelope", jsonText);
-                                        Creditinfoupdate.Parameters.AddWithValue("@Creditinfochecked", 1);
-                                        Creditinfoupdate.Parameters.AddWithValue("@MobilePhone", MobilePhone);
-                                        Creditinfoupdate.Parameters.AddWithValue("@RecommendedDecision", infoAdvise.RecommendedDecision);
-                                        Creditinfoupdate.Parameters.AddWithValue("@CreditLimit", infoAdvise.CreditLimit);
-                                        Creditinfoupdate.Parameters.AddWithValue("@CIPScore", infoAdvise.CIPScore);
-                                        Creditinfoupdate.Parameters.AddWithValue("@CIPRiskGrade", infoAdvise.CIPRiskGrade);
-                                        Creditinfoupdate.Parameters.AddWithValue("@MobileScore", infoAdvise.MobileScore);
-                                        Creditinfoupdate.Parameters.AddWithValue("@MobileScoreRiskGrade", infoAdvise.MobileScoreRiskGrade);
-                                        con.ConnectionString = connectionString;
-                                        con.Open();
-                                        int successStus = Creditinfoupdate.ExecuteNonQuery();
-                                        con.Close();
-                                    }
-
-                                }
-
-
-                            }
-                        }
-                        else
-                        {
-
-                            infoAdvise.FaultCode = "1";
-                        }
 
                     }
-
-                    ////////end
                 }
+                con.Close();
 
+                BeginStrategyClass request = JsonConvert.DeserializeObject<BeginStrategyClass>(receivedjson);
+                CreditInfoResponse response = new CreditInfoResponse();
+                string infodecision = "";
+
+                if (request == null)
+                {
+                    response.Description = "Required Field(s) are Missing";
+                }
                 else
                 {
-                    //not found 
-                    infoAdvise.FaultCode = "1";
+                    string childName = "";
+                    soapEnvelope = await BeginStrategy.getInstance().CreateSoapEnvelope(NationalId, ExistingCustomer, MobilePhone, AgeOfBusiness, request.SalesTurnover, request.NDaysInRollover, request.NDeclinedApplicationsL3m, request.RepaymentScore, request.DateOfLastLimitChange);
+                    xmlDocument = new XmlDocument();
+                    xmlDocument.LoadXml(soapEnvelope);
+                    XmlNodeList nodes = xmlDocument.GetElementsByTagName("BeginStrategyResult");
+                    int Count = 0;
+                    string token = xmlDocument.GetElementsByTagName("Token")[0].InnerText;
+
+
+                    if (nodes != null)
+                    {
+                        foreach (XmlNode node in nodes)
+                        {
+
+                            response.Token = node["Token"].InnerText;
+                            response.Description = "Success";
+                            response.FaultCode = "0";
+
+                            soapEnvelope = await BeginStrategy.getInstance().CreateSoapEnvelopeEndStrat(response.Token);
+
+                            xmlDoc = new XmlDocument();
+                            xmlDoc.LoadXml(soapEnvelope);
+                            XmlNodeList nodesEND = xmlDoc.GetElementsByTagName("Response");
+                            XmlNodeList fault = xmlDoc.GetElementsByTagName("detail");
+                            while (fault.Count > 0 && Count <= 20)
+                            {
+                                response.FaultCode = "1";
+                                soapEnvelope = await BeginStrategy.getInstance().CreateSoapEnvelopeEndStrat(response.Token);
+                                // To convert an XML node contained in string xml into a JSON string   
+                                XmlDocument doc = new XmlDocument();
+                                doc.LoadXml(soapEnvelope);
+                                jsonText = JsonConvert.SerializeXmlNode(doc);
+
+                                // To convert JSON text contained in string json into an XML node
+                                XmlDocument dc = JsonConvert.DeserializeXmlNode(jsonText);
+
+
+                                xmlDc = new XmlDocument();
+                                xmlDc.LoadXml(soapEnvelope);
+                                nodesEND = xmlDc.GetElementsByTagName("Response");
+                                fault = xmlDc.GetElementsByTagName("detail");
+                                Count++;
+                            }
+                            if (nodesEND.Count != 0)
+                            {
+                                foreach (XmlNode nodeEND in nodesEND)
+                                {
+                                    //Debug.WriteLine(nodeEND.ChildNodes[0].Name.ToString());
+                                    //Debug.WriteLine(" Status " + nodeEND["status"].InnerText);
+                                    response.Token = "";
+                                    response.Description = "";
+                                    response.FaultCode = "0";
+
+                                    nodesEND = xmlDc.GetElementsByTagName("response");
+                                    XNamespace.Get("http://creditinfo.com/schemas/2012/09/MultiConnector/Connectors/INT/IdmStrategy/Response");
+                                    foreach (XmlNode noderesponse in nodesEND[1])
+                                    {
+                                        if (noderesponse.Name.Equals("Result"))
+                                        {
+                                            infoAdvise.RecommendedDecision = noderesponse["RecommendedDecision"].InnerText;
+                                            infoAdvise.CreditLimit = noderesponse["CreditLimit"].InnerText;
+                                        }
+                                        if (noderesponse.Name.Equals("GeneralInformation"))
+                                        {
+                                            infoAdvise.SubjectIDNumber = noderesponse["SubjectIDNumber"].InnerText;
+                                        }
+                                        if (noderesponse.Name.Equals("ScoringAnalysis"))
+                                        {
+                                            infoAdvise.CIPScore = noderesponse["CIPScore"].InnerText;
+                                            infoAdvise.CIPRiskGrade = noderesponse["CIPRiskGrade"].InnerText;
+                                            infoAdvise.MobileScore = noderesponse["MobileScore"].InnerText;
+                                            infoAdvise.MobileScoreRiskGrade = noderesponse["MobileScoreRiskGrade"].InnerText;
+                                        }
+
+                                        SqlCommand Creditinfoupdate = new SqlCommand("Updatecreditstatus", con);
+                                        using (SqlDataAdapter sda = new SqlDataAdapter())
+                                        {
+                                            Creditinfoupdate.CommandType = CommandType.StoredProcedure;
+                                            Creditinfoupdate.Parameters.AddWithValue("@SoapEnvelope", jsonText);
+                                            Creditinfoupdate.Parameters.AddWithValue("@Creditinfochecked", 1);
+                                            Creditinfoupdate.Parameters.AddWithValue("@phone", MobilePhone);
+                                            Creditinfoupdate.Parameters.AddWithValue("@@reccomendation", infoAdvise.RecommendedDecision);
+                                            Creditinfoupdate.Parameters.AddWithValue("@customerlimit", infoAdvise.CreditLimit);
+                                            Creditinfoupdate.Parameters.AddWithValue("@CIPScore", infoAdvise.CIPScore);
+                                            Creditinfoupdate.Parameters.AddWithValue("@CIPRiskGrade", infoAdvise.CIPRiskGrade);
+                                            Creditinfoupdate.Parameters.AddWithValue("@MobileScore", infoAdvise.MobileScore);
+                                            Creditinfoupdate.Parameters.AddWithValue("@MobileScoreRiskGrade", infoAdvise.MobileScoreRiskGrade);
+                                            con.ConnectionString = connectionString;
+                                            con.Open();
+                                            int successStus = Creditinfoupdate.ExecuteNonQuery();
+                                            con.Close();
+                                        }
+
+                                    }
+
+
+                                }
+                            }
+                            else
+                            {
+
+                                infoAdvise.FaultCode = "1";
+                            }
+
+                        }
+
+                        ////////end
+                    }
+
+                    else
+                    {
+                        //not found 
+                        infoAdvise.FaultCode = "1";
+                    }
+
+
                 }
-
-
             }
             var jsonSerialiser = new JavaScriptSerializer();
             var json = new JavaScriptSerializer().Serialize(infoAdvise);
@@ -520,6 +510,6 @@ namespace mchservice
             }
             return result;
         }
-    
+
     }
 }
