@@ -205,12 +205,12 @@ namespace mchservice
             string NationalId = "";
             string ExistingCustomer = "True";
             string MobilePhone = "";
-            int AgeOfBusiness = 1;
+            string AgeOfBusiness = "1";
             string SalesTurnover = "3000";
-            string NDaysInRollover = "";
-            string NDeclinedApplicationsL3m = "";
-            string RepaymentScore = "";
-            string DateOfLastLimitChange = "";
+            string NDaysInRollover = "4";
+            string NDeclinedApplicationsL3m = "0";
+            string RepaymentScore = "600";
+            string DateOfLastLimitChange = "2019-11-25";
 
             int pendingchecks = 0;
 
@@ -253,7 +253,9 @@ namespace mchservice
                             NationalId = Convert.ToString((read["ID_NO_OR_PASSPORT"]));
                             MobilePhone = Convert.ToString((read["MOBILE_NUMBER"]));
                             AgeOfBusiness = 12;
-                            NDaysInRollover = (read["borrowerphone"]).ToString();
+                          
+
+
                         }
                     }
                     con.Close();
@@ -279,7 +281,7 @@ namespace mchservice
             else
             {
                 string childName = "";
-                soapEnvelope = await BeginStrategy.getInstance().CreateSoapEnvelope(request.NationalId, request.ExistingCustomer, request.MobilePhone, request.AgeOfBusiness, request.SalesTurnover, request.NDaysInRollover, request.NDeclinedApplicationsL3m, request.RepaymentScore, request.DateOfLastLimitChange);
+                soapEnvelope = await BeginStrategy.getInstance().CreateSoapEnvelope(NationalId, ExistingCustomer, MobilePhone, AgeOfBusiness, request.SalesTurnover, request.NDaysInRollover, request.NDeclinedApplicationsL3m, request.RepaymentScore, request.DateOfLastLimitChange);
                 xmlDocument = new XmlDocument();
                 xmlDocument.LoadXml(soapEnvelope);
                 XmlNodeList nodes = xmlDocument.GetElementsByTagName("BeginStrategyResult");
