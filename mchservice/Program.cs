@@ -8,15 +8,29 @@ namespace mchservice
 
     public class Program
     {
-      public const  string connectionString = "server=197.232.70.193,30008;" + "initial catalog=MICROCAP_HOLD;" + "user id=Demabio;" + "password=123456";
-      public const string smsdbstring = "server=197.232.70.193,30008;" + "initial catalog=FIN_SMS_EMAIL;" + "user id=Demabio;" + "password=123456";
-     
+        public const string connectionString = "server=197.232.70.193,50003;" + "initial catalog=MICROCAP_HOLD;" + "user id=sa;" + "password=123456";
+        public const string smsdbstring = "server=197.232.70.193,50002;" + "initial catalog=FIN_SMS_EMAIL;" + "user id=sa;" + "password=123456";
+
 
         static void Main(string[] args)
         {
 
+            int rolloverflag;
+         
+            smsreminder smsreminder = new smsreminder();
+            writeoff writeoff = new writeoff();
+            Rollover rollover = new Rollover();
 
-            Rollover();
+            rolloverflag = rollover.rolloverloan();
+
+            if (rolloverflag == -1)
+            {
+                writeoff.writeoffloans();
+                smsreminder.smsr();
+            }
+
+
+            Console.WriteLine("Services has processed all loans succesfully");
             Console.ReadKey();
 
         }
@@ -30,7 +44,7 @@ namespace mchservice
                 string smsbody = "", phoneNumber = "";
 
                 //getting number of txn to be rolled over
-                var countquery = "select count(loanid) as count from VW_ROLLEDOVER where RoleoverDate<=@currentdate and ROLLEDOVER=0 ";
+                var countquery = "select count(loanid) as count from VW_ROLLEDOVER where RoleoverDate<=@currentdate and ROLLEDOVER=0 OR ROLLEDOVER IS NULL ";
                 SqlCommand cmdcount = new SqlCommand(countquery, con);
                 cmdcount.Parameters.AddWithValue("@currentdate", DateTime.Now);
                 con.ConnectionString = connectionString;
@@ -49,12 +63,13 @@ namespace mchservice
                 }
                 con.Close();
 
+
                 //updating all loans past rolledOver date.
 
                 for (i = 0; i < pendingloans; i++)
                 {
 
-                    var fetchStrings = "SELECT * FROM VW_ROLLEDOVER WHERE RoleoverDate<=@currentdate and ROLLEDOVER=0";
+                    var fetchStrings = "SELECT * FROM VW_ROLLEDOVER WHERE RoleoverDate<=@currentdate and ROLLEDOVER=0 OR ROLLEDOVER IS NULL";
                     SqlCommand cmd = new SqlCommand(fetchStrings, con);
                     cmd.Parameters.AddWithValue("@currentdate", DateTime.Now);
                     try
@@ -101,7 +116,7 @@ namespace mchservice
                                     Console.WriteLine("There was an error updating the loan kindly view logs");
                                     Console.WriteLine();
                                     break;
-                                case 1:
+                                case -1:
 
 
 
@@ -127,7 +142,7 @@ namespace mchservice
                                         con.Close();
 
                                         //dumping sms to sms db
-                                        string newsmsbody = smsbody.Replace("<amount>", Convert.ToString(penalty)).Replace("<new loan balance>", Convert.ToString(newbalance));
+                                        string newsmsbody = smsbody.Replace("{amount}", Convert.ToString(penalty)).Replace("{newl}", Convert.ToString(newbalance));
 
                                         SqlCommand cmddump = new SqlCommand("InsertRolloversms", con);
 
@@ -139,7 +154,7 @@ namespace mchservice
                                             cmddump.Parameters.AddWithValue("@datex", DateTime.Now);
                                             cmddump.Parameters.AddWithValue("@sentStatus", 0);
                                             cmddump.Parameters.AddWithValue("@loanid", loanid);
-                                            cmddump.Parameters.AddWithValue("@client", "CEMES");
+                                            cmddump.Parameters.AddWithValue("@client", "FINSOL");
                                             con.ConnectionString = smsdbstring;
                                             con.Open();
                                             cmddump.ExecuteNonQuery();
@@ -175,6 +190,9 @@ namespace mchservice
                 Console.WriteLine(ex.Message);
             }
         }
+
+
+        //Method to activate customers
         public void activeCustomer()
         {
 
@@ -185,7 +203,7 @@ namespace mchservice
                 using (SqlDataAdapter sda = new SqlDataAdapter())
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
-                   
+
 
 
                     cmd.Connection = con;
@@ -196,10 +214,13 @@ namespace mchservice
                 }
             }
 
-            
 
-    
+
+
         }
+
+        //sms reminder
+
        
     }
 }
