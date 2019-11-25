@@ -252,7 +252,7 @@ namespace mchservice
                         {
                             NationalId = Convert.ToString((read["ID_NO_OR_PASSPORT"]));
                             MobilePhone = Convert.ToString((read["MOBILE_NUMBER"]));
-                            AgeOfBusiness = 12;
+                            AgeOfBusiness = "12";
                           
 
 
