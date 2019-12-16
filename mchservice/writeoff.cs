@@ -8,7 +8,7 @@ namespace mchservice
 {
     class writeoff
     {
-        public const string connectionString = "server=197.232.70.193,50003;" + "initial catalog=MICROCAP_HOLD;" + "user id=sa;" + "password=123456";
+        public const string connectionString = "server=102.133.102.16,50004;" + "initial catalog=CEMES_Staging;" + "user id=sa;" + "password=123456";
         public void writeoffloans()
         {
 

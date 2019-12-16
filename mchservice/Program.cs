@@ -13,7 +13,7 @@ namespace mchservice
         public const string smsdbstring = "server=197.232.70.193,50002;" + "initial catalog=FIN_SMS_EMAIL;" + "user id=sa;" + "password=123456";
 
 
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
 
             int rolloverflag;
@@ -22,19 +22,20 @@ namespace mchservice
             writeoff writeoff = new writeoff();
             Rollover rollover = new Rollover();
             Sabuni sabuni = new Sabuni();
-        
 
-            string xxx=await sabuni.CreditInfoRequestAsync();
 
-            rolloverflag = rollover.rolloverloan();
+            // string xxx=await sabuni.CreditInfoRequestAsync();
 
-            if (rolloverflag == -1)
-            {
-               // writeoff.writeoffloans();
-               // smsreminder.smsr();
-            }
-           
+            //  rolloverflag = rollover.rolloverloan();
 
+            //if (rolloverflag == -1)
+            //{
+            //   // writeoff.writeoffloans();
+            //   // smsreminder.smsr();
+            //}
+
+            Console.WriteLine("TEST");
+            Console.ReadLine();
         }
         static void Rollover()
         {
